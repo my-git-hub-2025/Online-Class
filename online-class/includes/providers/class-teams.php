@@ -7,6 +7,9 @@ defined( 'ABSPATH' ) || exit;
 
 class OC_Teams {
 
+	/** Default token lifetime in seconds when `expires_in` is absent from the API response. */
+	const DEFAULT_TOKEN_EXPIRY = 3600;
+
 	private static $token_option = 'oc_teams_access_token';
 
 	/**
@@ -62,7 +65,7 @@ class OC_Teams {
 
 		$token_data = array(
 			'token'   => $body['access_token'],
-			'expires' => time() + (int) ( $body['expires_in'] ?? 3600 ),
+			'expires' => time() + (int) ( $body['expires_in'] ?? self::DEFAULT_TOKEN_EXPIRY ),
 		);
 		OC_DB::update_setting( self::$token_option, wp_json_encode( $token_data ) );
 

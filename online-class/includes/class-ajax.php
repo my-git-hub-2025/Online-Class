@@ -380,7 +380,7 @@ class OC_Ajax {
 			'avail_date' => isset( $_POST['avail_date'] )  ? sanitize_text_field( $_POST['avail_date'] )  : null,
 			'start_time' => isset( $_POST['start_time'] )  ? sanitize_text_field( $_POST['start_time'] )  : null,
 			'end_time'   => isset( $_POST['end_time'] )    ? sanitize_text_field( $_POST['end_time'] )    : null,
-		), fn( $v ) => $v !== null );
+		), function ( $v ) { return $v !== null; } );
 
 		OC_DB::update_availability( $id, $data );
 		wp_send_json_success( array( 'message' => __( 'Availability updated.', 'online-class' ) ) );
@@ -483,7 +483,7 @@ class OC_Ajax {
 			'meeting_type'   => isset( $_POST['meeting_type'] )   ? sanitize_text_field( $_POST['meeting_type'] )       : null,
 			'meeting_url'    => isset( $_POST['meeting_url'] )    ? esc_url_raw( $_POST['meeting_url'] )                 : null,
 			'attendees'      => isset( $_POST['attendees'] )      ? array_map( 'intval', (array) $_POST['attendees'] )  : null,
-		), fn( $v ) => $v !== null );
+		), function ( $v ) { return $v !== null; } );
 
 		$result = OC_Meeting::update( $meeting_id, $data );
 		if ( is_wp_error( $result ) ) {
@@ -537,7 +537,7 @@ class OC_Ajax {
 				$all    = OC_DB::get_classes_by_school( $school_id );
 				$user_g = OC_DB::get_user_groups( $uid, 'class' );
 				$user_ids = array_column( $user_g, 'id' );
-				$groups = array_filter( $all, fn( $g ) => in_array( $g->id, $user_ids, true ) );
+				$groups = array_filter( $all, function ( $g ) use ( $user_ids ) { return in_array( $g->id, $user_ids, true ); } );
 				$groups = array_values( $groups );
 			}
 		} else {

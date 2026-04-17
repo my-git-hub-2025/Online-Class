@@ -232,7 +232,7 @@ class OC_DB {
 	public static function bp_installed() {
 		global $wpdb;
 		$table = $wpdb->prefix . 'bp_groups';
-		return ( $wpdb->get_var( "SHOW TABLES LIKE '{$table}'" ) === $table ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		return ( $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $table ) ) === $table );
 	}
 
 	/**

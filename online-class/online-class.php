@@ -7,6 +7,7 @@
  * Author:      Online Class Team
  * License:     GPL v2 or later
  * Text Domain: online-class
+ * Requires PHP: 7.4
  */
 
 defined( 'ABSPATH' ) || exit;
