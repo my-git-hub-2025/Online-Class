@@ -31,25 +31,44 @@ class OC_DB {
 	}
 
 	private static function clean_textarea( $value ) {
-		return trim( strip_tags( (string) $value ) );
+		$text = strip_tags( (string) $value );
+		return trim( str_replace( array( "\r\n", "\r" ), "\n", $text ) );
 	}
 
 	private static function clean_url( $value ) {
-		$url = trim( (string) $value );
-		return filter_var( $url, FILTER_VALIDATE_URL ) ? $url : '';
+		$url = trim( filter_var( (string) $value, FILTER_SANITIZE_URL ) );
+		if ( ! $url || ! filter_var( $url, FILTER_VALIDATE_URL ) ) {
+			return '';
+		}
+		$scheme = parse_url( $url, PHP_URL_SCHEME );
+		return in_array( strtolower( (string) $scheme ), array( 'http', 'https' ), true ) ? $url : '';
 	}
 
 	private static function encode_json( $value ) {
 		$json = json_encode( $value );
-		return ( $json !== false ) ? $json : null;
+		return ( $json !== false ) ? $json : false;
 	}
 
 	private static function decode_serialized_array( $value ) {
 		if ( ! is_string( $value ) || $value === '' ) {
 			return array();
 		}
-		$decoded = @unserialize( trim( $value ), array( 'allowed_classes' => false ) );
-		if ( $decoded === false && trim( $value ) !== 'b:0;' ) {
+		$raw = trim( $value );
+		if ( ! preg_match( '/^[aOsibdN]:/', $raw ) ) {
+			return array();
+		}
+
+		$had_warning = false;
+		set_error_handler(
+			static function () use ( &$had_warning ) {
+				$had_warning = true;
+				return true;
+			}
+		);
+		$decoded = unserialize( $raw, array( 'allowed_classes' => false ) );
+		restore_error_handler();
+
+		if ( $had_warning || ( $decoded === false && $raw !== 'b:0;' ) ) {
 			return array();
 		}
 		if ( is_array( $decoded ) ) {
@@ -615,6 +634,14 @@ class OC_DB {
 	 */
 	public static function create_meeting( $data ) {
 		global $wpdb;
+		$meeting_data = null;
+		if ( ! empty( $data['meeting_data'] ) ) {
+			$meeting_data = self::encode_json( $data['meeting_data'] );
+			if ( $meeting_data === false ) {
+				return false;
+			}
+		}
+
 		$result = $wpdb->insert(
 			self::table( 'oc_meetings' ),
 			array(
@@ -631,7 +658,7 @@ class OC_DB {
 				'meeting_url'     => self::clean_url( $data['meeting_url'] ?? '' ),
 				'meeting_id'      => self::clean_text( $data['meeting_id'] ?? '' ),
 				'meeting_password' => self::clean_text( $data['meeting_password'] ?? '' ),
-				'meeting_data'    => ! empty( $data['meeting_data'] ) ? self::encode_json( $data['meeting_data'] ) : null,
+				'meeting_data'    => $meeting_data,
 				'status'          => 'scheduled',
 				'created_by'      => (int) $data['created_by'],
 			),
@@ -670,7 +697,15 @@ class OC_DB {
 					$format[]       = '%s';
 					break;
 				case 'meeting_data':
-					$update[ $key ] = is_array( $data[ $key ] ) ? self::encode_json( $data[ $key ] ) : self::clean_text( $data[ $key ] );
+					if ( is_array( $data[ $key ] ) ) {
+						$encoded = self::encode_json( $data[ $key ] );
+						if ( $encoded === false ) {
+							return false;
+						}
+						$update[ $key ] = $encoded;
+					} else {
+						$update[ $key ] = trim( (string) $data[ $key ] );
+					}
 					$format[]       = '%s';
 					break;
 				default:
