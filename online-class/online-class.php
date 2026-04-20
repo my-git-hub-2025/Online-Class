@@ -29,6 +29,10 @@ spl_autoload_register(
 		}
 
 		$class_slug    = strtolower( substr( $class_name, 3 ) );
+		if ( ! preg_match( '/^[a-z0-9_]+$/', $class_slug ) ) {
+			return;
+		}
+
 		$provider_path = OC_PLUGIN_DIR . 'includes/providers/class-' . $class_slug . '.php';
 		$default_path  = OC_PLUGIN_DIR . 'includes/class-' . $class_slug . '.php';
 		$path          = is_readable( $provider_path ) ? $provider_path : $default_path;
@@ -39,7 +43,8 @@ spl_autoload_register(
 		}
 
 		if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
-			error_log( sprintf( 'Online Class autoloader class file not found or not readable for %s. Tried: %s | %s', $class_name, $provider_path, $default_path ) ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
+			$safe_class_name = preg_replace( '/[^A-Za-z0-9_\\\\]/', '', $class_name );
+			error_log( sprintf( 'Online Class autoloader class file not found or not readable for %s. Tried: %s | %s', $safe_class_name, $provider_path, $default_path ) ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
 		}
 	}
 );
