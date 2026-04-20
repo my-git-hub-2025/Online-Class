@@ -28,9 +28,9 @@ spl_autoload_register(
 			return;
 		}
 
-		$class_suffix = strtolower( substr( $class_name, 3 ) );
-		$provider_path = OC_PLUGIN_DIR . 'includes/providers/class-' . $class_suffix . '.php';
-		$default_path  = OC_PLUGIN_DIR . 'includes/class-' . $class_suffix . '.php';
+		$class_slug    = strtolower( substr( $class_name, 3 ) );
+		$provider_path = OC_PLUGIN_DIR . 'includes/providers/class-' . $class_slug . '.php';
+		$default_path  = OC_PLUGIN_DIR . 'includes/class-' . $class_slug . '.php';
 		$path          = is_readable( $provider_path ) ? $provider_path : $default_path;
 
 		if ( is_readable( $path ) ) {
@@ -39,7 +39,7 @@ spl_autoload_register(
 		}
 
 		if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
-			error_log( sprintf( 'Online Class autoloader class file not found or not readable for %s: %s', $class_name, $path ) ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
+			error_log( sprintf( 'Online Class autoloader class file not found or not readable for %s. Tried: %s | %s', $class_name, $provider_path, $default_path ) ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
 		}
 	}
 );
