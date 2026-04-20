@@ -46,7 +46,10 @@ class OC_DB {
 
 	private static function encode_json( $value ) {
 		$json = json_encode( $value );
-		return ( $json !== false ) ? $json : false;
+		if ( json_last_error() !== JSON_ERROR_NONE ) {
+			return false;
+		}
+		return $json;
 	}
 
 	private static function decode_serialized_array( $value ) {
@@ -54,30 +57,24 @@ class OC_DB {
 			return array();
 		}
 		$raw = trim( $value );
-		if ( ! preg_match( '/^[aOsibdN]:/', $raw ) ) {
+		if ( ! preg_match( '/^a:\d+:\{.*\}$/s', $raw ) ) {
 			return array();
 		}
 
 		$had_warning = false;
 		set_error_handler(
-			static function () use ( &$had_warning ) {
+			static function ( $errno ) use ( &$had_warning ) {
 				$had_warning = true;
-				return true;
+				return in_array( $errno, array( E_WARNING, E_NOTICE ), true );
 			}
 		);
 		$decoded = unserialize( $raw, array( 'allowed_classes' => false ) );
 		restore_error_handler();
 
-		if ( $had_warning || ( $decoded === false && $raw !== 'b:0;' ) ) {
+		if ( $had_warning || ! is_array( $decoded ) ) {
 			return array();
 		}
-		if ( is_array( $decoded ) ) {
-			return $decoded;
-		}
-		if ( is_object( $decoded ) ) {
-			return (array) $decoded;
-		}
-		return array();
+		return $decoded;
 	}
 
 	/* ------------------------------------------------------------------
