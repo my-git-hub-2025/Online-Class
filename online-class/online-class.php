@@ -18,15 +18,24 @@ define( 'OC_PLUGIN_URL',  plugin_dir_url( __FILE__ ) );
 define( 'OC_PLUGIN_FILE', __FILE__ );
 
 /* ------------------------------------------------------------------
- * Load core classes
+ * Class autoloader
  * ------------------------------------------------------------------ */
-require_once OC_PLUGIN_DIR . 'includes/class-db.php';
-require_once OC_PLUGIN_DIR . 'includes/providers/class-zoom.php';
-require_once OC_PLUGIN_DIR . 'includes/providers/class-teams.php';
-require_once OC_PLUGIN_DIR . 'includes/class-meeting.php';
-require_once OC_PLUGIN_DIR . 'includes/class-ajax.php';
-require_once OC_PLUGIN_DIR . 'includes/class-shortcodes.php';
-require_once OC_PLUGIN_DIR . 'includes/class-admin.php';
+spl_autoload_register(
+	static function ( $class ) {
+		if ( strpos( $class, 'OC_' ) !== 0 ) {
+			return;
+		}
+
+		$slug = strtolower( substr( $class, 3 ) );
+		$path = in_array( $slug, array( 'zoom', 'teams' ), true )
+			? OC_PLUGIN_DIR . 'includes/providers/class-' . $slug . '.php'
+			: OC_PLUGIN_DIR . 'includes/class-' . $slug . '.php';
+
+		if ( is_readable( $path ) ) {
+			require_once $path;
+		}
+	}
+);
 
 /* ------------------------------------------------------------------
  * Activation / Deactivation
