@@ -36,6 +36,11 @@ spl_autoload_register(
 
 		if ( is_readable( $path ) ) {
 			require_once $path;
+			return;
+		}
+
+		if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
+			error_log( sprintf( 'Online Class autoloader could not read class file for %s: %s', $class_name, $path ) ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
 		}
 	}
 );
