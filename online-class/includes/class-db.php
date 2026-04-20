@@ -15,8 +15,6 @@
  *   {prefix}oc_attendees
  */
 
-defined( 'ABSPATH' ) || exit;
-
 class OC_DB {
 
 	/* ------------------------------------------------------------------
@@ -26,6 +24,41 @@ class OC_DB {
 	public static function table( $name ) {
 		global $wpdb;
 		return $wpdb->prefix . $name;
+	}
+
+	private static function clean_text( $value ) {
+		return trim( strip_tags( (string) $value ) );
+	}
+
+	private static function clean_textarea( $value ) {
+		return trim( strip_tags( (string) $value ) );
+	}
+
+	private static function clean_url( $value ) {
+		$url = trim( (string) $value );
+		return filter_var( $url, FILTER_VALIDATE_URL ) ? $url : '';
+	}
+
+	private static function encode_json( $value ) {
+		$json = json_encode( $value );
+		return ( $json !== false ) ? $json : null;
+	}
+
+	private static function decode_serialized_array( $value ) {
+		if ( ! is_string( $value ) || $value === '' ) {
+			return array();
+		}
+		$decoded = @unserialize( trim( $value ), array( 'allowed_classes' => false ) );
+		if ( $decoded === false && trim( $value ) !== 'b:0;' ) {
+			return array();
+		}
+		if ( is_array( $decoded ) ) {
+			return $decoded;
+		}
+		if ( is_object( $decoded ) ) {
+			return (array) $decoded;
+		}
+		return array();
 	}
 
 	/* ------------------------------------------------------------------
@@ -184,7 +217,7 @@ class OC_DB {
 		if ( ! $meta_value ) {
 			return false;
 		}
-		$caps = maybe_unserialize( $meta_value );
+		$caps = self::decode_serialized_array( $meta_value );
 		return is_array( $caps ) && ! empty( $caps[ $role ] );
 	}
 
@@ -450,9 +483,9 @@ class OC_DB {
 				'teacher_id'  => (int) $data['teacher_id'],
 				'school_id'   => ! empty( $data['school_id'] ) ? (int) $data['school_id'] : null,
 				'class_id'    => ! empty( $data['class_id'] )  ? (int) $data['class_id']  : null,
-				'avail_date'  => sanitize_text_field( $data['avail_date'] ),
-				'start_time'  => sanitize_text_field( $data['start_time'] ),
-				'end_time'    => sanitize_text_field( $data['end_time'] ),
+				'avail_date'  => self::clean_text( $data['avail_date'] ),
+				'start_time'  => self::clean_text( $data['start_time'] ),
+				'end_time'    => self::clean_text( $data['end_time'] ),
 				'is_booked'   => 0,
 			),
 			array( '%d', '%d', '%d', '%s', '%s', '%s', '%d' )
@@ -470,9 +503,9 @@ class OC_DB {
 
 		if ( isset( $data['school_id'] ) ) { $update['school_id']  = (int) $data['school_id'];                    $format[] = '%d'; }
 		if ( isset( $data['class_id'] ) )  { $update['class_id']   = (int) $data['class_id'];                     $format[] = '%d'; }
-		if ( isset( $data['avail_date'] ) ){ $update['avail_date'] = sanitize_text_field( $data['avail_date'] );  $format[] = '%s'; }
-		if ( isset( $data['start_time'] ) ){ $update['start_time'] = sanitize_text_field( $data['start_time'] );  $format[] = '%s'; }
-		if ( isset( $data['end_time'] ) )  { $update['end_time']   = sanitize_text_field( $data['end_time'] );    $format[] = '%s'; }
+		if ( isset( $data['avail_date'] ) ){ $update['avail_date'] = self::clean_text( $data['avail_date'] );  $format[] = '%s'; }
+		if ( isset( $data['start_time'] ) ){ $update['start_time'] = self::clean_text( $data['start_time'] );  $format[] = '%s'; }
+		if ( isset( $data['end_time'] ) )  { $update['end_time']   = self::clean_text( $data['end_time'] );    $format[] = '%s'; }
 		if ( isset( $data['is_booked'] ) ) { $update['is_booked']  = (int) $data['is_booked'];                    $format[] = '%d'; }
 
 		if ( empty( $update ) ) {
@@ -535,7 +568,7 @@ class OC_DB {
 		}
 		if ( ! empty( $args['status'] ) ) {
 			$where[]  = 'm.status = %s';
-			$params[] = sanitize_text_field( $args['status'] );
+			$params[] = self::clean_text( $args['status'] );
 		}
 		if ( ! empty( $args['date_from'] ) ) {
 			$where[]  = 'DATE(m.start_datetime) >= %s';
@@ -585,20 +618,20 @@ class OC_DB {
 		$result = $wpdb->insert(
 			self::table( 'oc_meetings' ),
 			array(
-				'title'           => sanitize_text_field( $data['title'] ?? '' ),
+				'title'           => self::clean_text( $data['title'] ?? '' ),
 				'teacher_id'      => (int) $data['teacher_id'],
 				'availability_id' => ! empty( $data['availability_id'] ) ? (int) $data['availability_id'] : null,
 				'school_id'       => ! empty( $data['school_id'] )  ? (int) $data['school_id']  : null,
 				'class_id'        => ! empty( $data['class_id'] )   ? (int) $data['class_id']   : null,
-				'topic'           => sanitize_textarea_field( $data['topic'] ?? '' ),
-				'start_datetime'  => sanitize_text_field( $data['start_datetime'] ),
-				'end_datetime'    => sanitize_text_field( $data['end_datetime'] ),
+				'topic'           => self::clean_textarea( $data['topic'] ?? '' ),
+				'start_datetime'  => self::clean_text( $data['start_datetime'] ),
+				'end_datetime'    => self::clean_text( $data['end_datetime'] ),
 				'duration'        => (int) ( $data['duration'] ?? 60 ),
-				'meeting_type'    => sanitize_text_field( $data['meeting_type'] ?? 'zoom' ),
-				'meeting_url'     => esc_url_raw( $data['meeting_url'] ?? '' ),
-				'meeting_id'      => sanitize_text_field( $data['meeting_id'] ?? '' ),
-				'meeting_password' => sanitize_text_field( $data['meeting_password'] ?? '' ),
-				'meeting_data'    => ! empty( $data['meeting_data'] ) ? wp_json_encode( $data['meeting_data'] ) : null,
+				'meeting_type'    => self::clean_text( $data['meeting_type'] ?? 'zoom' ),
+				'meeting_url'     => self::clean_url( $data['meeting_url'] ?? '' ),
+				'meeting_id'      => self::clean_text( $data['meeting_id'] ?? '' ),
+				'meeting_password' => self::clean_text( $data['meeting_password'] ?? '' ),
+				'meeting_data'    => ! empty( $data['meeting_data'] ) ? self::encode_json( $data['meeting_data'] ) : null,
 				'status'          => 'scheduled',
 				'created_by'      => (int) $data['created_by'],
 			),
@@ -633,15 +666,15 @@ class OC_DB {
 					$format[]       = '%d';
 					break;
 				case 'meeting_url':
-					$update[ $key ] = esc_url_raw( $data[ $key ] );
+					$update[ $key ] = self::clean_url( $data[ $key ] );
 					$format[]       = '%s';
 					break;
 				case 'meeting_data':
-					$update[ $key ] = is_array( $data[ $key ] ) ? wp_json_encode( $data[ $key ] ) : $data[ $key ];
+					$update[ $key ] = is_array( $data[ $key ] ) ? self::encode_json( $data[ $key ] ) : self::clean_text( $data[ $key ] );
 					$format[]       = '%s';
 					break;
 				default:
-					$update[ $key ] = sanitize_text_field( $data[ $key ] );
+					$update[ $key ] = self::clean_text( $data[ $key ] );
 					$format[]       = '%s';
 			}
 		}
@@ -695,7 +728,7 @@ class OC_DB {
 				"INSERT IGNORE INTO " . self::table( 'oc_attendees' ) . " (meeting_id, user_id, status) VALUES (%d, %d, %s)", // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
 				(int) $meeting_id,
 				(int) $user_id,
-				sanitize_text_field( $status )
+				self::clean_text( $status )
 			)
 		);
 	}
@@ -704,7 +737,7 @@ class OC_DB {
 		global $wpdb;
 		return $wpdb->update(
 			self::table( 'oc_attendees' ),
-			array( 'status' => sanitize_text_field( $status ) ),
+			array( 'status' => self::clean_text( $status ) ),
 			array( 'meeting_id' => (int) $meeting_id, 'user_id' => (int) $user_id ),
 			array( '%s' ),
 			array( '%d', '%d' )
