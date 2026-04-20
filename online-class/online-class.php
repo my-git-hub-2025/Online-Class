@@ -29,10 +29,9 @@ spl_autoload_register(
 		}
 
 		$class_suffix = strtolower( substr( $class_name, 3 ) );
-		$providers    = array( 'zoom', 'teams' );
-		$path         = in_array( $class_suffix, $providers, true )
-			? OC_PLUGIN_DIR . 'includes/providers/class-' . $class_suffix . '.php'
-			: OC_PLUGIN_DIR . 'includes/class-' . $class_suffix . '.php';
+		$provider_path = OC_PLUGIN_DIR . 'includes/providers/class-' . $class_suffix . '.php';
+		$default_path  = OC_PLUGIN_DIR . 'includes/class-' . $class_suffix . '.php';
+		$path          = is_readable( $provider_path ) ? $provider_path : $default_path;
 
 		if ( is_readable( $path ) ) {
 			require_once $path;
@@ -40,7 +39,7 @@ spl_autoload_register(
 		}
 
 		if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
-			error_log( sprintf( 'Online Class autoloader could not read class file for %s: %s', $class_name, $path ) ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
+			error_log( sprintf( 'Online Class autoloader class file not found or not readable for %s: %s', $class_name, $path ) ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
 		}
 	}
 );
