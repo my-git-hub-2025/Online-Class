@@ -22,14 +22,17 @@ define( 'OC_PLUGIN_FILE', __FILE__ );
  * ------------------------------------------------------------------ */
 spl_autoload_register(
 	static function ( $class ) {
-		if ( strpos( $class, 'OC_' ) !== 0 ) {
+		$parts      = explode( '\\', $class );
+		$class_name = end( $parts );
+		if ( strpos( $class_name, 'OC_' ) !== 0 ) {
 			return;
 		}
 
-		$slug = strtolower( substr( $class, 3 ) );
-		$path = in_array( $slug, array( 'zoom', 'teams' ), true )
-			? OC_PLUGIN_DIR . 'includes/providers/class-' . $slug . '.php'
-			: OC_PLUGIN_DIR . 'includes/class-' . $slug . '.php';
+		$class_suffix = strtolower( substr( $class_name, 3 ) );
+		$providers    = array( 'zoom', 'teams' );
+		$path         = in_array( $class_suffix, $providers, true )
+			? OC_PLUGIN_DIR . 'includes/providers/class-' . $class_suffix . '.php'
+			: OC_PLUGIN_DIR . 'includes/class-' . $class_suffix . '.php';
 
 		if ( is_readable( $path ) ) {
 			require_once $path;
